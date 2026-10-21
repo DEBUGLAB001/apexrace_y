@@ -1,0 +1,25 @@
+{
+  "challenge_id": "apexrace",
+  "title": "ApexRace: Motorsport Race Control System",
+  "description": "Professional motorsport race-control console with live timing tower, telemetry, race radio, linked-list pit strategy, incident queue, and steward decision stack.",
+  "runtime_config": {
+    "runtime_type": "cpp-cmake",
+    "install_command": "cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2",
+    "start_command": "./start.sh",
+    "test_command": "bash tests/run_tests.sh",
+    "ports": [
+      {
+        "container_port": 8080,
+        "type": "preview"
+      }
+    ]
+  },
+  "bug_topics": [
+    "Array Indexing",
+    "String Processing",
+    "Linked List Traversal",
+    "Pit Stop Scheduling",
+    "FIFO Queue",
+    "Stack-Based Undo"
+  ]
+}

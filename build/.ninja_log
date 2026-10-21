@@ -1,0 +1,13 @@
+# ninja log v7
+217	40510	8142600680952822	CMakeFiles/core_services.dir/src/service/radio_parser.cpp.obj	a643507601d790bf
+188	40992	8142600680661056	CMakeFiles/core_services.dir/src/service/timing_engine.cpp.obj	a663de4514d9129f
+40541	52291	8142601084184162	CMakeFiles/core_services.dir/src/service/pit_strategy.cpp.obj	420c490dd960c77c
+40992	56004	8142601088699347	CMakeFiles/core_services.dir/src/service/incident_queue.cpp.obj	ee138064edf22e3
+52292	67993	8142601201698453	CMakeFiles/core_services.dir/src/service/steward_decisions.cpp.obj	b7a00fb3516fcef5
+67993	69485	8142601358704836	libcore_services.a	70411ab39bb0da8f
+69486	83813	8142601373622007	CMakeFiles/challenge_tests.dir/tests/test_suite.cpp.obj	36bad5f8c75ee84f
+83814	88593	8142601516913564	challenge_tests.exe	bf88b01be48d2008
+56005	103633	8142601238814303	CMakeFiles/server.dir/src/main.cpp.obj	277126232313a4a7
+103642	106251	8142601715198706	server.exe	ecb9b733e4b86956
+815	16890	8142602486838071	CMakeFiles/challenge_tests.dir/tests/test_suite.cpp.obj	36bad5f8c75ee84f
+724	6047	8142603044676772	challenge_tests.exe	bf88b01be48d2008

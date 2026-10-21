@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexRace — Motorsport Race Control Console</title>
+  <meta name="description" content="Professional circuit racing race-control console with dedicated pages for live timing, telemetry, race radio, pit strategy linked list, incident queue, and steward decisions.">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="race-console">
+    <!-- TOP RACE STRIP (PERSISTENT ACROSS ALL VIEWS) -->
+    <header class="race-strip" id="race-strip">
+      <div class="strip-left">
+        <div class="brand-badge">
+          <span class="brand-icon">▲</span>
+          <span class="brand-text">APEX<span class="brand-sub">RACE</span></span>
+          <span class="brand-tower">CONTROL TOWER</span>
+        </div>
+        <div class="event-details">
+          <h1 class="event-name" id="strip-event-name">Apex British Grand Prix</h1>
+          <span class="circuit-name" id="strip-circuit">Silverstone Circuit (5.891 km)</span>
+        </div>
+      </div>
+
+      <div class="strip-center">
+        <div class="session-pill" id="session-pill">
+          <span class="pill-label">SESSION</span>
+          <span class="pill-val" id="strip-session-type">RACE</span>
+        </div>
+        <div class="metric-pill">
+          <span class="pill-label">LAP</span>
+          <span class="pill-val mono-val" id="strip-lap-counter">16 / 52</span>
+        </div>
+        <div class="metric-pill">
+          <span class="pill-label">SESSION CLOCK</span>
+          <span class="pill-val mono-val" id="strip-session-clock">00:23:45</span>
+        </div>
+        <div class="track-status-pill status-green" id="strip-track-status">
+          <span class="status-indicator"></span>
+          <span class="status-text" id="strip-status-text">TRACK CLEAR</span>
+        </div>
+      </div>
+
+      <div class="strip-right">
+        <div class="quick-status-dropdown">
+          <label for="track-status-select" class="visually-hidden">Track Status</label>
+          <select id="track-status-select" class="status-select" aria-label="Change Track Status">
+            <option value="GREEN">GREEN FLAG</option>
+            <option value="YELLOW">YELLOW FLAG</option>
+            <option value="SAFETY_CAR">SAFETY CAR</option>
+            <option value="RED_FLAG">RED FLAG</option>
+          </select>
+        </div>
+        <button id="btn-advance-lap" class="action-btn btn-advance" title="Simulate 1 full circuit lap for all cars">
+          <span class="btn-icon">▶|</span> ADVANCE LAP
+        </button>
+        <button id="btn-reset-session" class="action-btn btn-secondary" title="Reset race session to default seeded state">
+          RESET
+        </button>
+      </div>
+    </header>
+
+    <!-- PRIMARY STATION NAVIGATION BAR -->
+    <nav class="station-nav" aria-label="Race Control Stations">
+      <div class="nav-links">
+        <a href="#timing" class="nav-link active" data-view="timing" id="nav-btn-timing">
+          <span class="nav-icon">⏱</span>
+          <span class="nav-title">LIVE TIMING TOWER</span>
+          <span class="nav-badge" id="nav-badge-drivers">12 CARS</span>
+        </a>
+        <a href="#radio" class="nav-link" data-view="radio" id="nav-btn-radio">
+          <span class="nav-icon">📻</span>
+          <span class="nav-title">RACE RADIO COMMS</span>
+          <span class="nav-badge" id="radio-badge">8</span>
+        </a>
+        <a href="#pit" class="nav-link" data-view="pit" id="nav-btn-pit">
+          <span class="nav-icon">🏎</span>
+          <span class="nav-title">PIT STRATEGY WALL</span>
+          <span class="nav-badge" id="pit-badge">5</span>
+        </a>
+        <a href="#incidents" class="nav-link" data-view="incidents" id="nav-btn-incidents">
+          <span class="nav-icon">⚠️</span>
+          <span class="nav-title">INCIDENT DISPATCH</span>
+          <span class="nav-badge badge-alert" id="incident-badge">3</span>
+        </a>
+        <a href="#stewards" class="nav-link" data-view="stewards" id="nav-btn-stewards">
+          <span class="nav-icon">⚖️</span>
+          <span class="nav-title">STEWARD DECISIONS</span>
+          <span class="nav-badge" id="stewards-badge">1</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main class="main-viewport">
+
+      <!-- ==========================================
+           PAGE 1: LIVE TIMING TOWER
+           ========================================== -->
+      <section class="page-view active" id="view-timing" aria-label="Live Timing Tower">
+        <div class="page-content">
+          <div class="station-header">
+            <div class="station-title-group">
+              <span class="panel-tag">TIMING STATION</span>
+              <h2 class="station-title">CIRCUIT LEADERBOARD & TELEMETRY</h2>
+            </div>
+            <div class="tower-legend">
+              <span class="legend-item"><span class="swatch swatch-purple"></span> Overall Fastest Lap</span>
+              <span class="legend-item"><span class="swatch swatch-green"></span> Personal Best</span>
+              <span class="legend-item"><span class="swatch swatch-yellow"></span> Normal Lap</span>
+            </div>
+          </div>
+
+          <div class="table-container wide-table-container">
+            <table class="timing-table" id="timing-table">
+              <thead>
+                <tr>
+                  <th class="col-pos">POS</th>
+                  <th class="col-car">#</th>
+                  <th class="col-driver">DRIVER</th>
+                  <th class="col-team">CONSTRUCTOR</th>
+                  <th class="col-gap">GAP TO LEADER</th>
+                  <th class="col-int">INTERVAL</th>
+                  <th class="col-last">LAST LAP</th>
+                  <th class="col-best">BEST LAP</th>
+                  <th class="col-s1">SECTOR 1</th>
+                  <th class="col-s2">SECTOR 2</th>
+                  <th class="col-s3">SECTOR 3</th>
+                  <th class="col-tire">TIRE COMPOUND</th>
+                  <th class="col-pit">PIT STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="timing-tbody">
+                <!-- Dynamically populated from backend state -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- DRIVER INSPECTOR PANEL (Spacious, Integrated) -->
+          <div class="driver-inspector active" id="driver-inspector">
+            <div class="inspector-header">
+              <div class="inspector-driver-info">
+                <span class="driver-number-badge" id="insp-number">#1</span>
+                <div>
+                  <h3 class="driver-name-title" id="insp-name">Max Verstappen</h3>
+                  <span class="driver-team-sub" id="insp-team">Red Bull Racing</span>
+                </div>
+              </div>
+              <div class="inspector-kpis">
+                <div class="kpi-box">
+                  <span class="kpi-label">GRID POSITION</span>
+                  <span class="kpi-val" id="insp-pos">P1</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-label">COMPLETED LAPS</span>
+                  <span class="kpi-val" id="insp-laps">16</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-label">PENALTY RECORD</span>
+                  <span class="kpi-val" id="insp-penalty">0s (0 W)</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-label">CURRENT TIRES</span>
+                  <span class="kpi-val" id="insp-tire">HARD (12 Laps)</span>
+                </div>
+              </div>
+              <button class="close-inspector-btn" id="btn-close-inspector" aria-label="Close inspector">✕</button>
+            </div>
+
+            <div class="inspector-body">
+              <div class="lap-history-col">
+                <h4 class="subhead">RECENT LAP TIMING RECORDS</h4>
+                <div class="history-table-wrap">
+                  <table class="history-table">
+                    <thead>
+                      <tr>
+                        <th>LAP</th>
+                        <th>LAP TIME</th>
+                        <th>SECTOR 1</th>
+                        <th>SECTOR 2</th>
+                        <th>SECTOR 3</th>
+                        <th>STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody id="insp-history-tbody">
+                      <!-- Lap history rows -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="manual-telemetry-col">
+                <h4 class="subhead">MANUAL LAP TELEMETRY INJECTION</h4>
+                <form id="record-lap-form" class="form-grid">
+                  <div class="form-row">
+                    <label for="input-lap-time">Lap Time (seconds)</label>
+                    <input type="number" id="input-lap-time" step="0.001" placeholder="87.250" required>
+                  </div>
+                  <div class="form-row three-cols">
+                    <div>
+                      <label for="input-s1">S1 (s)</label>
+                      <input type="number" id="input-s1" step="0.001" placeholder="27.120" required>
+                    </div>
+                    <div>
+                      <label for="input-s2">S2 (s)</label>
+                      <input type="number" id="input-s2" step="0.001" placeholder="32.480" required>
+                    </div>
+                    <div>
+                      <label for="input-s3">S3 (s)</label>
+                      <input type="number" id="input-s3" step="0.001" placeholder="27.650" required>
+                    </div>
+                  </div>
+                  <button type="submit" id="btn-submit-lap" class="action-btn btn-primary full-width">
+                    RECORD DRIVER LAP
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           PAGE 2: RACE RADIO COMMS
+           ========================================== -->
+      <section class="page-view" id="view-radio" aria-label="Race Radio Communications">
+        <div class="page-content">
+          <div class="station-header">
+            <div class="station-title-group">
+              <span class="panel-tag">AUDIO COMMS</span>
+              <h2 class="station-title">RACE RADIO CHANNEL MONITOR</h2>
+            </div>
+            <p class="station-subtitle">Chronological radio communications from drivers, team engineers, and race control.</p>
+          </div>
+
+          <div class="radio-page-layout">
+            <div class="radio-main-col">
+              <div class="ops-toolbar">
+                <div class="search-box">
+                  <input type="text" id="radio-search-input" placeholder="Search radio transmissions (e.g. box, tire, yellow, debris)..." aria-label="Search radio">
+                </div>
+                <div class="filter-controls">
+                  <select id="radio-category-filter" aria-label="Filter by category">
+                    <option value="ALL">All Categories</option>
+                    <option value="STRATEGY">Strategy</option>
+                    <option value="INCIDENT">Incident</option>
+                    <option value="TECHNICAL">Technical</option>
+                    <option value="STEWARDS">Stewards</option>
+                    <option value="GENERAL">General</option>
+                  </select>
+                  <select id="radio-driver-filter" aria-label="Filter by car">
+                    <option value="0">All Cars</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="radio-feed spacious-feed" id="radio-feed-list">
+                <!-- Radio messages stream -->
+              </div>
+            </div>
+
+            <div class="radio-sidebar-col">
+              <div class="new-item-box">
+                <h4 class="subhead">TRANSMIT SIMULATED RADIO MESSAGE</h4>
+                <form id="new-radio-form" class="form-grid">
+                  <div class="form-row">
+                    <label for="radio-sender-input">Sender Callout</label>
+                    <input type="text" id="radio-sender-input" placeholder="e.g. VER, Race Control, Pit Wall" required>
+                  </div>
+                  <div class="form-row two-cols">
+                    <div>
+                      <label for="radio-car-input">Car Number (0 for Control)</label>
+                      <input type="number" id="radio-car-input" placeholder="1" min="0" max="99">
+                    </div>
+                    <div>
+                      <label for="radio-category-input">Category</label>
+                      <select id="radio-category-input">
+                        <option value="STRATEGY">STRATEGY</option>
+                        <option value="INCIDENT">INCIDENT</option>
+                        <option value="TECHNICAL">TECHNICAL</option>
+                        <option value="STEWARDS">STEWARDS</option>
+                        <option value="GENERAL">GENERAL</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="radio-text-input">Message Transmission</label>
+                    <textarea id="radio-text-input" rows="3" placeholder="Enter transmission transcript..." required></textarea>
+                  </div>
+                  <button type="submit" id="btn-send-radio" class="action-btn btn-primary full-width">
+                    BROADCAST TO RADIO CHANNEL
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           PAGE 3: PIT STRATEGY WALL
+           ========================================== -->
+      <section class="page-view" id="view-pit" aria-label="Pit Strategy Wall">
+        <div class="page-content">
+          <div class="station-header">
+            <div class="station-title-group">
+              <span class="panel-tag">STRATEGY STATION</span>
+              <h2 class="station-title">PIT WALL ORDERED SCHEDULE</h2>
+            </div>
+            <div class="header-action-group">
+              <span class="stops-count-badge" id="pit-stops-count-badge">5 STOPS IN LINKED LIST</span>
+            </div>
+          </div>
+
+          <div class="pit-page-layout">
+            <div class="pit-board-col">
+              <div class="pit-board-desc-box">
+                <span class="callout-tag">LINKED LIST PIT SEQUENCE</span>
+                <p class="callout-desc">The pit strategy plan is maintained as an ordered linked list in the C++ backend. Reordering stops updates predecessor and successor pointers directly.</p>
+              </div>
+
+              <div class="pit-strategy-board spacious-pit-board" id="pit-strategy-board">
+                <!-- Sequential linked list cards rendered from backend order -->
+              </div>
+            </div>
+
+            <div class="pit-form-col">
+              <div class="new-item-box">
+                <h4 class="subhead">SCHEDULE PLANNED PIT STOP</h4>
+                <form id="new-pit-form" class="form-grid">
+                  <div class="form-row two-cols">
+                    <div>
+                      <label for="pit-car-input">Car Number</label>
+                      <input type="number" id="pit-car-input" placeholder="e.g. 4" min="1" max="99" required>
+                    </div>
+                    <div>
+                      <label for="pit-lap-input">Planned Lap</label>
+                      <input type="number" id="pit-lap-input" placeholder="e.g. 24" min="1" max="70" required>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="pit-type-input">Tire Compound / Service</label>
+                    <select id="pit-type-input">
+                      <option value="SOFT">SOFT TIRES (RED)</option>
+                      <option value="MEDIUM" selected>MEDIUM TIRES (YELLOW)</option>
+                      <option value="HARD">HARD TIRES (WHITE)</option>
+                      <option value="INTERMEDIATE">INTERMEDIATE (GREEN)</option>
+                      <option value="WET">FULL WET (BLUE)</option>
+                      <option value="WING_CHANGE">FRONT WING REPLACEMENT</option>
+                      <option value="PENALTY_SERVE">SERVE TIME PENALTY</option>
+                    </select>
+                  </div>
+                  <button type="submit" id="btn-schedule-pit" class="action-btn btn-primary full-width">
+                    INSERT IN LINKED LIST SCHEDULE
+                  </button>
+                </form>
+              </div>
+
+              <div class="pit-rules-box mt-16">
+                <h4 class="subhead">PIT WALL REGULATIONS</h4>
+                <ul class="bullet-list">
+                  <li>Stops are chronologically organized by planned lap number.</li>
+                  <li>Multiple different cars may schedule stops on the same lap (e.g. safety car pit window).</li>
+                  <li>A single car cannot schedule two distinct stops on the identical lap.</li>
+                  <li>Reordering with ▲ Earlier and ▼ Later adjusts the node's position in the linked list.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           PAGE 4: INCIDENT DISPATCH
+           ========================================== -->
+      <section class="page-view" id="view-incidents" aria-label="Incident Dispatch">
+        <div class="page-content">
+          <div class="station-header">
+            <div class="station-title-group">
+              <span class="panel-tag">SAFETY STATION</span>
+              <h2 class="station-title">INCIDENT DISPATCH & FIFO QUEUE</h2>
+            </div>
+            <button id="btn-process-next-incident" class="action-btn btn-warning">
+              ⚡ REVIEW NEXT INCIDENT (FIFO)
+            </button>
+          </div>
+
+          <div class="incidents-page-layout">
+            <div class="incidents-queue-col">
+              <div class="fifo-callout-header">
+                <div>
+                  <span class="callout-tag">ARRIVAL-ORDER INCIDENT QUEUE</span>
+                  <p class="callout-desc">Incidents are queued in strict arrival order (FIFO). Click "REVIEW NEXT INCIDENT" above to pop the oldest pending incident.</p>
+                </div>
+                <span class="stops-count-badge" id="incident-count-label">3 PENDING</span>
+              </div>
+
+              <div id="pending-incidents-container" class="queue-cards-wrapper">
+                <!-- Pending incident cards -->
+              </div>
+            </div>
+
+            <div class="incidents-actions-col">
+              <div class="incident-action-panel" id="incident-action-panel">
+                <h4 class="subhead">ACTIVE INVESTIGATION WORKSPACE</h4>
+                <div id="active-investigation-box" class="investigation-empty-state">
+                  <p>No active incident under direct review. Click "REVIEW NEXT INCIDENT" above to dequeue the arrival-order incident.</p>
+                </div>
+
+                <div class="new-item-box mt-16">
+                  <h4 class="subhead">REPORT TRACK INCIDENT</h4>
+                  <form id="new-incident-form" class="form-grid">
+                    <div class="form-row three-cols">
+                      <div>
+                        <label for="inc-lap-input">Lap</label>
+                        <input type="number" id="inc-lap-input" min="1" max="70" value="16" required>
+                      </div>
+                      <div>
+                        <label for="inc-loc-input">Location / Sector</label>
+                        <input type="text" id="inc-loc-input" placeholder="Turn 3 (Village)" required>
+                      </div>
+                      <div>
+                        <label for="inc-cars-input">Cars (comma separated)</label>
+                        <input type="text" id="inc-cars-input" placeholder="4, 16" required>
+                      </div>
+                    </div>
+                    <div class="form-row two-cols">
+                      <div>
+                        <label for="inc-cat-input">Category</label>
+                        <select id="inc-cat-input">
+                          <option value="COLLISION">COLLISION</option>
+                          <option value="TRACK_LIMITS">TRACK_LIMITS</option>
+                          <option value="SPEEDING_PIT_LANE">SPEEDING_PIT_LANE</option>
+                          <option value="IMPEDING">IMPEDING</option>
+                          <option value="UNSAFE_RELEASE">UNSAFE_RELEASE</option>
+                          <option value="DEBRIS">DEBRIS</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for="inc-sev-input">Severity</label>
+                        <select id="inc-sev-input">
+                          <option value="LOW">LOW</option>
+                          <option value="MEDIUM" selected>MEDIUM</option>
+                          <option value="HIGH">HIGH</option>
+                          <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <label for="inc-desc-input">Description</label>
+                      <input type="text" id="inc-desc-input" placeholder="Brief factual description of the incident..." required>
+                    </div>
+                    <button type="submit" id="btn-report-incident" class="action-btn btn-alert full-width">
+                      LOG & ENQUEUE INCIDENT
+                    </button>
+                  </form>
+                </div>
+
+                <h4 class="subhead mt-16">RESOLVED INCIDENT ARCHIVE</h4>
+                <div id="resolved-incidents-container" class="resolved-cards-wrapper">
+                  <!-- Resolved incident cards -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           PAGE 5: STEWARD DECISIONS
+           ========================================== -->
+      <section class="page-view" id="view-stewards" aria-label="Steward Decisions Console">
+        <div class="page-content">
+          <div class="station-header">
+            <div class="station-title-group">
+              <span class="panel-tag">STEWARD CONSOLE</span>
+              <h2 class="station-title">PENALTIES & REVERSIBLE ACTION STACK</h2>
+            </div>
+            <button id="btn-undo-decision" class="action-btn btn-warning" title="Undo the latest reversible steward decision">
+              ↶ UNDO LATEST ACTION (<span id="undo-depth-counter">1</span>)
+            </button>
+          </div>
+
+          <div class="stewards-page-layout">
+            <div class="stewards-history-col">
+              <div class="pit-board-desc-box">
+                <span class="callout-tag">REVERSIBLE STEWARD ACTIONS</span>
+                <p class="callout-desc">Every decision is recorded on an undo stack. Undoing an action restores the full driver penalty state in the C++ backend and updates the live timing tower.</p>
+              </div>
+
+              <div class="decision-history-feed spacious-feed" id="decision-history-feed">
+                <!-- List of applied steward decisions -->
+              </div>
+            </div>
+
+            <div class="stewards-form-col">
+              <div class="new-item-box">
+                <h4 class="subhead">APPLY STEWARD ACTION</h4>
+                <form id="new-decision-form" class="form-grid">
+                  <div class="form-row">
+                    <label for="dec-driver-select">Target Driver</label>
+                    <select id="dec-driver-select" required>
+                      <!-- Driver options filled dynamically -->
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="dec-action-select">Sanction Directive</label>
+                    <select id="dec-action-select">
+                      <option value="TIME_PENALTY">5-Second Time Penalty</option>
+                      <option value="TIME_PENALTY_10">10-Second Time Penalty</option>
+                      <option value="WARNING">Official Warning</option>
+                      <option value="DISQUALIFICATION">Disqualification (Black Flag)</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="dec-reason-input">Offense / Regulation Reference</label>
+                    <input type="text" id="dec-reason-input" placeholder="e.g. Causing a collision at Turn 4 (Article 33.4)" required>
+                  </div>
+                  <button type="submit" id="btn-apply-decision" class="action-btn btn-alert full-width">
+                    EXECUTE STEWARD DIRECTIVE
+                  </button>
+                </form>
+              </div>
+
+              <div class="pit-rules-box mt-16">
+                <h4 class="subhead">SANCTION POLICY</h4>
+                <ul class="bullet-list">
+                  <li><strong>Time Penalties</strong>: Added to the driver's elapsed race time, affecting gap to leader and leaderboard position.</li>
+                  <li><strong>Warnings</strong>: Recorded on the driver's profile; 3 warnings trigger an automated penalty review.</li>
+                  <li><strong>Undo Stack</strong>: Fully restores the previous state, including penalty seconds and warning counters.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER EVENT LOG TICKER (PERSISTENT) -->
+    <footer class="race-footer">
+      <div class="footer-status-tag">RACE LOGS:</div>
+      <div class="footer-log-ticker" id="footer-log-ticker">
+        <!-- Live session event log entries -->
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
